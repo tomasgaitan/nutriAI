@@ -6,12 +6,12 @@ import { parseProtocol }     from '../../utils/protocol'
 import { getUserId }         from '../../lib/userId'
 import MessageBubble         from './MessageBubble'
 
-const WELCOME = (name) => `¡Hola, ${name}! 👋 Soy NutriAI, tu nutricionista personal.
+const WELCOME = (name) => `¡Hola, ${name.split(' ')[0]}! 👋 Soy NutriAI, tu nutricionista personal.
 
 Puedo ayudarte con:
-• **Análisis de comidas** – mandame una foto y calculo los macros al toque
-• **Consejos de nutrición** – preguntame lo que quieras
-• **Seguimiento** – revisá tu dashboard para ver cómo vas hoy
+• Análisis de comidas – mandame una foto y calculo los macros al toque
+• Consejos de nutrición – preguntame lo que quieras
+• Seguimiento – revisá tu dashboard para ver cómo vas hoy
 
 ¿Con qué arrancamos?`
 
