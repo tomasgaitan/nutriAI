@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getUserId }      from './lib/userId'
+import supabase        from './lib/supabase'
 import { getUserProfile } from './lib/supabase'
-import Onboarding         from './components/Onboarding'
-import ChatInterface      from './components/Chat/ChatInterface'
-import Dashboard          from './components/Dashboard/Dashboard'
-import HistoryView        from './components/History/HistoryView'
+import AuthScreen      from './components/Auth/AuthScreen'
+import Onboarding      from './components/Onboarding'
+import ChatInterface   from './components/Chat/ChatInterface'
+import Dashboard       from './components/Dashboard/Dashboard'
+import HistoryView     from './components/History/HistoryView'
 
 const NAV = [
   { id: 'chat',      icon: '💬', label: 'Chat'      },
@@ -13,23 +14,32 @@ const NAV = [
 ]
 
 export default function App() {
-  const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState(null)
-  const [view,    setView]    = useState('chat')
-  const [dashKey, setDashKey] = useState(0)
-  const userId = getUserId()
+  const [session,  setSession]  = useState(undefined) // undefined = loading
+  const [profile,  setProfile]  = useState(null)
+  const [view,     setView]     = useState('chat')
+  const [dashKey,  setDashKey]  = useState(0)
 
+  // Auth state
   useEffect(() => {
-    getUserProfile(userId).then(({ data }) => {
-      setProfile(data)
-      setLoading(false)
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setSession(session)
+      if (!session) setProfile(null)
     })
-  }, [userId])
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Load profile when session is ready
+  useEffect(() => {
+    if (!session?.user) return
+    getUserProfile(session.user.id).then(({ data }) => setProfile(data))
+  }, [session])
 
   const handleMealSaved    = useCallback(() => setDashKey(k => k + 1), [])
   const handleProfileSaved = useCallback((p) => setProfile(p), [])
 
-  if (loading) {
+  // Loading
+  if (session === undefined) {
     return (
       <div className="flex h-full items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-4">
@@ -40,8 +50,12 @@ export default function App() {
     )
   }
 
+  // Not logged in
+  if (!session) return <AuthScreen />
+
+  // Logged in but no profile → onboarding
   if (!profile) {
-    return <Onboarding userId={userId} onComplete={setProfile} />
+    return <Onboarding userId={session.user.id} onComplete={setProfile} />
   }
 
   const isHistory = view === 'history'
@@ -67,30 +81,38 @@ export default function App() {
               {n.icon}
             </button>
           ))}
+          {/* Logout */}
+          <button
+            onClick={() => supabase.auth.signOut()}
+            title="Cerrar sesión"
+            className="mt-auto w-10 h-10 rounded-xl flex items-center justify-center text-lg text-muted hover:bg-card hover:text-white transition-all"
+          >
+            🚪
+          </button>
         </nav>
 
-        {/* Chat panel — mobile: solo si view=chat | desktop: siempre que no sea history */}
+        {/* Chat panel */}
         <div className={`flex-col flex-1 min-w-0 ${view === 'chat' ? 'flex' : 'hidden'} ${!isHistory ? 'md:flex' : 'md:hidden'}`}>
           <ChatInterface
             profile={profile}
-            userId={userId}
+            userId={session.user.id}
             onMealSaved={handleMealSaved}
             onProfileSaved={handleProfileSaved}
           />
         </div>
 
-        {/* Dashboard panel — mobile: solo si view=dashboard | desktop: siempre que no sea history */}
+        {/* Dashboard panel */}
         <div className={`flex-col w-full md:w-[420px] md:shrink-0 md:border-l md:border-border ${view === 'dashboard' ? 'flex' : 'hidden'} ${!isHistory ? 'md:flex' : 'md:hidden'}`}>
           <Dashboard
             profile={profile}
-            userId={userId}
+            userId={session.user.id}
             refreshKey={dashKey}
           />
         </div>
 
         {/* History panel */}
         <div className={`flex-1 overflow-hidden ${isHistory ? 'flex' : 'hidden'}`}>
-          <HistoryView profile={profile} userId={userId} />
+          <HistoryView profile={profile} userId={session.user.id} />
         </div>
 
       </div>
@@ -109,6 +131,13 @@ export default function App() {
             <span className="text-[10px] font-dm">{n.label}</span>
           </button>
         ))}
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl text-muted transition-all"
+        >
+          <span className="text-xl">🚪</span>
+          <span className="text-[10px] font-dm">Salir</span>
+        </button>
       </nav>
     </div>
   )
