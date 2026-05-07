@@ -163,7 +163,7 @@ export default function ChatInterface({ profile, userId, onMealSaved, onProfileS
   const selectedMeal = MEAL_TYPES.find(m => m.id === mealType)
 
   return (
-    <div className="flex flex-col flex-1 min-w-0 md:border-r md:border-border">
+    <div className="flex flex-col flex-1 min-w-0 min-h-0 md:border-r md:border-border">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-surface shrink-0">
         <div className="w-9 h-9 rounded-full bg-cal-green/20 flex items-center justify-center text-lg">🥗</div>
