@@ -7,6 +7,12 @@ const supabase = createClient(
 
 export default supabase
 
+// Devuelve la fecha local en formato YYYY-MM-DD (evita desfase UTC)
+function localToday() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 // ── User Profile ──────────────────────────────────────────────────────────────
 
 export async function getUserProfile(userId) {
@@ -30,7 +36,7 @@ export async function saveUserProfile(userId, fields) {
 // ── Meal Logs ─────────────────────────────────────────────────────────────────
 
 export async function saveMealLog(userId, meal) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localToday()
   const { data, error } = await supabase
     .from('meal_logs')
     .insert({
@@ -51,7 +57,7 @@ export async function saveMealLog(userId, meal) {
 }
 
 export async function getTodayMeals(userId) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localToday()
   const { data, error } = await supabase
     .from('meal_logs')
     .select('*')
@@ -69,7 +75,7 @@ export async function deleteMealLog(id, userId) {
     .eq('user_id', userId)
 
   if (!error) {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localToday()
     await recalcDailySummary(userId, today)
   }
   return { error }
