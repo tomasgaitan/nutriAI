@@ -19,7 +19,24 @@ function getClient() {
  * @param {string} systemPrompt
  * @yields {string} text chunk
  */
-export async function* streamMessage(messages, systemPrompt) {
+// Pricing for claude-sonnet-4-6 (USD per token)
+export const PRICING = {
+  input:          3.00  / 1_000_000,
+  output:         15.00 / 1_000_000,
+  cache_creation: 3.75  / 1_000_000,
+  cache_read:     0.30  / 1_000_000,
+}
+
+export function calcCost(usage = {}) {
+  return (
+    (usage.input_tokens              ?? 0) * PRICING.input +
+    (usage.output_tokens             ?? 0) * PRICING.output +
+    (usage.cache_creation_input_tokens ?? 0) * PRICING.cache_creation +
+    (usage.cache_read_input_tokens   ?? 0) * PRICING.cache_read
+  )
+}
+
+export async function* streamMessage(messages, systemPrompt, onUsage) {
   const client = getClient()
 
   const stream = client.messages.stream({
@@ -37,6 +54,11 @@ export async function* streamMessage(messages, systemPrompt) {
       yield event.delta.text
     }
   }
+
+  try {
+    const final = await stream.finalMessage()
+    onUsage?.(final.usage)
+  } catch (_) {}
 }
 
 function formatMessage(msg) {

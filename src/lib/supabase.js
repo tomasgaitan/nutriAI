@@ -102,6 +102,32 @@ async function recalcDailySummary(userId, date) {
     )
 }
 
+// ── Usage Logs ────────────────────────────────────────────────────────────────
+
+export async function saveUsageLog(userId, { message_type, input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens, cost_usd }) {
+  await supabase.from('usage_logs').insert({
+    user_id: userId,
+    message_type,
+    input_tokens:            input_tokens            ?? 0,
+    output_tokens:           output_tokens           ?? 0,
+    cache_creation_tokens:   cache_creation_tokens   ?? 0,
+    cache_read_tokens:       cache_read_tokens        ?? 0,
+    cost_usd:                cost_usd                ?? 0,
+  })
+}
+
+export async function getUsageLogs(userId, days = 30) {
+  const from = new Date()
+  from.setDate(from.getDate() - days)
+  const { data, error } = await supabase
+    .from('usage_logs')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('created_at', from.toISOString())
+    .order('created_at', { ascending: false })
+  return { data: data ?? [], error }
+}
+
 export async function getHistorySummaries(userId, days = 30) {
   const from = new Date()
   from.setDate(from.getDate() - days)

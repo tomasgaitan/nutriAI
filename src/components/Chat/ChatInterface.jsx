@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { streamMessage }              from '../../lib/claude'
-import { saveMealLog, saveUserProfile } from '../../lib/supabase'
+import { streamMessage, calcCost }    from '../../lib/claude'
+import { saveMealLog, saveUserProfile, saveUsageLog } from '../../lib/supabase'
 import { buildSystemPrompt }          from '../../utils/systemPrompt'
 import { parseProtocol }              from '../../utils/protocol'
 import MessageBubble                  from './MessageBubble'
@@ -117,8 +117,18 @@ export default function ChatInterface({ profile, userId, onMealSaved, onProfileS
     try {
       let fullText = ''
       const history = buildApiMessages([...messages, userMsg])
+      const messageType = imageFile ? 'image' : mealType ? 'meal' : 'chat'
 
-      for await (const chunk of streamMessage(history, systemPrompt)) {
+      for await (const chunk of streamMessage(history, systemPrompt, async (usage) => {
+        saveUsageLog(userId, {
+          message_type:          messageType,
+          input_tokens:          usage.input_tokens,
+          output_tokens:         usage.output_tokens,
+          cache_creation_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_tokens:     usage.cache_read_input_tokens     ?? 0,
+          cost_usd:              calcCost(usage),
+        })
+      })) {
         fullText += chunk
         setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: fullText } : m))
       }

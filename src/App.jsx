@@ -6,11 +6,18 @@ import Onboarding      from './components/Onboarding'
 import ChatInterface   from './components/Chat/ChatInterface'
 import Dashboard       from './components/Dashboard/Dashboard'
 import HistoryView     from './components/History/HistoryView'
+import AdminView       from './components/Admin/AdminView'
 
 const NAV = [
   { id: 'chat',      icon: '💬', label: 'Chat'      },
   { id: 'dashboard', icon: '📊', label: 'Hoy'       },
   { id: 'history',   icon: '📈', label: 'Historial' },
+]
+
+const DESKTOP_NAV = [
+  { id: 'chat',    icon: '💬', label: 'Chat'      },
+  { id: 'history', icon: '📈', label: 'Historial' },
+  { id: 'admin',   icon: '⚙️',  label: 'Admin'     },
 ]
 
 export default function App() {
@@ -59,6 +66,7 @@ export default function App() {
   }
 
   const isHistory = view === 'history'
+  const isAdmin   = view === 'admin'
 
   return (
     <div className="flex flex-col h-full bg-bg">
@@ -67,13 +75,13 @@ export default function App() {
         {/* Sidebar — desktop only */}
         <nav className="hidden md:flex flex-col items-center gap-2 pt-5 pb-6 px-2 w-[60px] bg-surface border-r border-border shrink-0">
           <div className="mb-4 text-2xl select-none" title="NutriAI">🥗</div>
-          {NAV.filter(n => n.id !== 'dashboard').map(n => (
+          {DESKTOP_NAV.map(n => (
             <button
               key={n.id}
               onClick={() => setView(n.id)}
               title={n.label}
               className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all ${
-                n.id === (isHistory ? 'history' : 'chat')
+                view === n.id || (n.id === 'chat' && !isHistory && !isAdmin)
                   ? 'bg-cal-green/20 text-cal-green shadow-[0_0_12px_rgba(34,197,94,0.25)]'
                   : 'text-muted hover:bg-card hover:text-white'
               }`}
@@ -91,8 +99,15 @@ export default function App() {
           </button>
         </nav>
 
+        {/* Admin panel */}
+        {isAdmin && (
+          <div className="flex flex-1 overflow-hidden">
+            <AdminView userId={session.user.id} />
+          </div>
+        )}
+
         {/* Chat panel */}
-        <div className={`flex-col flex-1 min-w-0 ${view === 'chat' ? 'flex' : 'hidden'} ${!isHistory ? 'md:flex' : 'md:hidden'}`}>
+        <div className={`flex-col flex-1 min-w-0 ${view === 'chat' ? 'flex' : 'hidden'} ${!isHistory && !isAdmin ? 'md:flex' : 'md:hidden'}`}>
           <ChatInterface
             profile={profile}
             userId={session.user.id}
@@ -102,7 +117,7 @@ export default function App() {
         </div>
 
         {/* Dashboard panel */}
-        <div className={`flex-col w-full md:w-[420px] md:shrink-0 md:border-l md:border-border ${view === 'dashboard' ? 'flex' : 'hidden'} ${!isHistory ? 'md:flex' : 'md:hidden'}`}>
+        <div className={`flex-col w-full md:w-[420px] md:shrink-0 md:border-l md:border-border ${view === 'dashboard' ? 'flex' : 'hidden'} ${!isHistory && !isAdmin ? 'md:flex' : 'md:hidden'}`}>
           <Dashboard
             profile={profile}
             userId={session.user.id}
